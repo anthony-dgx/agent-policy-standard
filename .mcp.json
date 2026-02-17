@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "monitoring-platform": {
+      "command": ".venv/bin/python",
+      "args": ["demo/mcp_server.py"]
+    }
+  }
+}
