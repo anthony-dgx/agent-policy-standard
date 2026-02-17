@@ -107,6 +107,36 @@ Every tool call sends `X-Agent-Id: claude-code`, so the enforcement middleware e
 
 Available tools: `list_monitors`, `get_monitor`, `create_monitor`, `delete_monitor`, `mute_monitor`, `list_dashboards`, `create_dashboard`, `delete_dashboard`, `discover_policy`.
 
+### Example session
+
+```
+$ claude
+
+> list the monitors
+
+  Three monitors on the platform:
+  - mon-1: CPU usage > 90% (production)
+  - mon-2: Error rate spike (production)
+  - mon-3: Deploy canary check (staging)
+
+> delete monitor mon-1
+
+  POLICY DENIED (403) — Deny deletes on production resources without human approval
+  Remediation: Deleting production resources requires human approval.
+  Ask the user to confirm before proceeding.
+
+> delete monitor mon-3
+
+  ✓ Deleted mon-3 (staging) — allowed by policy.
+
+> mute monitor mon-2
+
+  WARNING: Muting production monitors is flagged by policy.
+  mon-2 is now muted, but the action was logged for review.
+```
+
+Claude discovers the policy constraints through the API responses and adapts its behavior accordingly — it cannot bypass server-side enforcement.
+
 ## Project Structure
 
 ```
