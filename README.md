@@ -21,6 +21,10 @@ A simple, discoverable protocol inspired by `robots.txt` and OAuth's `.well-know
 3. **Rules** define what actions are allowed, denied, or warned — with conditions, rate limits, and remediation instructions
 4. A **runtime evaluation endpoint** lets agents check actions before executing them
 
+## Prerequisites
+
+- Python >= 3.11
+
 ## Quickstart
 
 ```bash
@@ -32,7 +36,7 @@ pip install -e ".[dev]"
 # Run tests
 pytest tests/
 
-# Start the policy server
+# Start the standalone policy server (policy endpoints only)
 uvicorn server.app:app --port 8000
 
 # Discover the policy
@@ -50,7 +54,7 @@ curl -X POST http://localhost:8000/agent/policy/evaluate \
 
 ## Demo: Full End-to-End
 
-The `demo/` directory contains a complete MonitoringPlatform backend that combines real business API endpoints with server-side policy enforcement. This demonstrates the full flow: agent discovers policy, agent calls real API, policy is enforced transparently via middleware.
+The `demo/` directory contains a complete MonitoringPlatform backend that combines real business API endpoints with server-side policy enforcement. Unlike `server.app` (policy endpoints only), `demo.app` is a full CRUD API for monitors and dashboards with policy enforcement baked into its middleware.
 
 ```bash
 # Terminal 1 — start the demo server
@@ -83,22 +87,44 @@ Requests to `/api/*` with an `X-Agent-Id` header are automatically evaluated aga
 - `warn` decisions proceed but add `X-Policy-Warning` and `X-Policy-Rule` response headers
 - Requests without `X-Agent-Id` bypass enforcement entirely (regular API usage)
 
+## Using with Claude Code (MCP)
+
+The project includes an MCP server that exposes the demo API as tools, so Claude Code can interact with it directly and see policy enforcement in real time.
+
+```bash
+# 1. Install the MCP dependency
+source .venv/bin/activate
+pip install "mcp[cli]"
+
+# 2. Start the demo server (keep running)
+uvicorn demo.app:app --port 8000
+
+# 3. Open Claude Code in the project directory — it picks up .mcp.json automatically
+# 4. Ask Claude to "list the monitors" or "delete monitor mon-1"
+```
+
+Every tool call sends `X-Agent-Id: claude-code`, so the enforcement middleware evaluates each request against the policy. Claude sees denials (403 + remediation), warnings, and rate limits in its tool responses.
+
+Available tools: `list_monitors`, `get_monitor`, `create_monitor`, `delete_monitor`, `mute_monitor`, `list_dashboards`, `create_dashboard`, `delete_dashboard`, `discover_policy`.
+
 ## Project Structure
 
 ```
 spec/               JSON Schemas for the policy format and evaluation API
-server/             FastAPI policy server + evaluation engine
+server/             Standalone policy server + evaluation engine
   engine.py         Safe expression parser (no eval()) + policy evaluator
   models.py         Pydantic models (Policy, Rule, EvalRequest, EvalResponse)
-  app.py            FastAPI endpoints
+  app.py            FastAPI endpoints (policy only — no business API)
   policies/         Example policy files
 sdk/                Agent SDK for discovering and complying with policies
   client.py         AgentPolicyClient (discover, evaluate, check)
   decorator.py      @enforce_policy decorator for tool functions
 demo/               Full demo backend with business API + policy enforcement
   app.py            MonitoringPlatform API (monitors + dashboards CRUD)
+  mcp_server.py     MCP server wrapping the demo API for Claude Code
   policy.json       Demo policy (4 rules: deny, warn, rate limit, audit)
   run_agent.py      End-to-end agent script
+.mcp.json           Claude Code MCP config (auto-discovers mcp_server.py)
 tests/              80 tests covering engine, SDK, server, and demo
 examples/           Standalone evaluation example
 ```
@@ -230,7 +256,7 @@ async def delete_monitor(monitor_id: str):
 
 ## Spec
 
-Full JSON Schemas are in `spec/`:
+Full JSON Schemas are in `spec/`. These define the wire format so other implementations can interoperate:
 
-- `agent-policy-schema.json` — Policy document format
-- `evaluation-schema.json` — Evaluation request/response format
+- `agent-policy-schema.json` — Policy document format (what `/.well-known/agent-policy.json` returns)
+- `evaluation-schema.json` — Evaluation request/response format (what `/agent/policy/evaluate` accepts and returns)
