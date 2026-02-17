@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpolicy.org/schema/agent-policy/v1",
+  "title": "Agent Policy Document",
+  "description": "Schema for agent-policy.json published by resource servers to define AI agent behavior policies.",
+  "type": "object",
+  "required": ["version", "issuer", "policy_endpoint", "updated_at", "rules"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version"
+    },
+    "issuer": {
+      "type": "string",
+      "format": "uri",
+      "description": "Resource server identifier (URL)"
+    },
+    "policy_endpoint": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL for the runtime evaluation API"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last policy update timestamp (ISO 8601)"
+    },
+    "agent_requirements": {
+      "type": "object",
+      "description": "What agents MUST provide when interacting with this resource server",
+      "properties": {
+        "identification": {
+          "$ref": "#/$defs/requirement_level"
+        },
+        "user_attribution": {
+          "$ref": "#/$defs/requirement_level"
+        },
+        "intent_declaration": {
+          "$ref": "#/$defs/requirement_level"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "array",
+      "description": "Policy rules that govern agent behavior",
+      "items": {
+        "$ref": "#/$defs/rule"
+      },
+      "minItems": 1
+    },
+    "audit": {
+      "type": "object",
+      "description": "What the server requires agents to log",
+      "properties": {
+        "log_decisions": {
+          "type": "boolean",
+          "description": "Whether agents must log policy evaluation decisions"
+        },
+        "log_actions": {
+          "type": "boolean",
+          "description": "Whether agents must log all actions taken"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum days to retain audit logs"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "requirement_level": {
+      "type": "string",
+      "enum": ["required", "recommended", "none"],
+      "description": "Level of requirement for an agent capability"
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "description", "actions", "enforcement"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique rule identifier"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the rule"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Glob patterns matching API actions (e.g., '*.read', 'monitor.delete')"
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["strict", "warn", "audit"],
+          "description": "How to handle violations: strict=deny, warn=log+allow, audit=log only"
+        },
+        "condition": {
+          "type": "string",
+          "description": "Expression string evaluated against the request context"
+        },
+        "rate_limit": {
+          "type": "object",
+          "properties": {
+            "max": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum number of requests"
+            },
+            "window": {
+              "type": "string",
+              "description": "Time window (e.g., '1m', '1h', '1d')"
+            },
+            "per": {
+              "type": "string",
+              "description": "Rate limit scope (e.g., 'agent', 'principal')"
+            }
+          },
+          "required": ["max", "window"],
+          "additionalProperties": false
+        },
+        "remediation": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["human_approval", "reduce_scope", "retry_after", "alternative_action"],
+              "description": "Type of remediation"
+            },
+            "prompt": {
+              "type": "string",
+              "description": "Instruction for the agent on how to remediate"
+            }
+          },
+          "required": ["type", "prompt"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

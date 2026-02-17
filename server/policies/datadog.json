@@ -1,0 +1,76 @@
+{
+  "version": "1.0",
+  "issuer": "https://api.datadoghq.com",
+  "policy_endpoint": "https://api.datadoghq.com/agent/policy/evaluate",
+  "updated_at": "2026-01-15T00:00:00Z",
+  "agent_requirements": {
+    "identification": "required",
+    "user_attribution": "required",
+    "intent_declaration": "recommended"
+  },
+  "rules": [
+    {
+      "id": "dd-001",
+      "description": "Deny destructive actions on production resources without human approval",
+      "actions": ["monitor.delete", "dashboard.delete", "slo.delete"],
+      "enforcement": "strict",
+      "condition": "resource.env == 'production'",
+      "remediation": {
+        "type": "human_approval",
+        "prompt": "Destructive actions on production resources require human approval. Ask the user to confirm this action before proceeding."
+      }
+    },
+    {
+      "id": "dd-002",
+      "description": "Warn on muting monitors in production",
+      "actions": ["monitor.mute"],
+      "enforcement": "warn",
+      "condition": "resource.env == 'production'"
+    },
+    {
+      "id": "dd-003",
+      "description": "Rate limit write operations per agent",
+      "actions": ["*.write", "*.create", "*.update"],
+      "enforcement": "strict",
+      "condition": null,
+      "rate_limit": {
+        "max": 100,
+        "window": "1m",
+        "per": "agent"
+      }
+    },
+    {
+      "id": "dd-004",
+      "description": "Audit all read operations",
+      "actions": ["*.read", "*.list"],
+      "enforcement": "audit"
+    },
+    {
+      "id": "dd-005",
+      "description": "Deny configuration changes by agents without admin role",
+      "actions": ["config.*"],
+      "enforcement": "strict",
+      "condition": "NOT (principal.roles IN ['admin'])",
+      "remediation": {
+        "type": "reduce_scope",
+        "prompt": "Configuration changes require admin privileges. Request admin access or ask an admin user to perform this action."
+      }
+    },
+    {
+      "id": "dd-006",
+      "description": "Deny destructive actions on staging without intent declaration",
+      "actions": ["monitor.delete", "dashboard.delete"],
+      "enforcement": "strict",
+      "condition": "resource.env == 'staging' AND intent == ''",
+      "remediation": {
+        "type": "alternative_action",
+        "prompt": "Destructive actions on staging require an intent declaration. Re-submit with a clear intent describing why this action is needed."
+      }
+    }
+  ],
+  "audit": {
+    "log_decisions": true,
+    "log_actions": true,
+    "retention_days": 90
+  }
+}

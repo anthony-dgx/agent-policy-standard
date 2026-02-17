@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "issuer": "http://localhost:8000",
+  "policy_endpoint": "http://localhost:8000/agent/policy/evaluate",
+  "updated_at": "2026-02-17T00:00:00Z",
+  "agent_requirements": {
+    "identification": "required",
+    "user_attribution": "recommended",
+    "intent_declaration": "recommended"
+  },
+  "rules": [
+    {
+      "id": "demo-001",
+      "description": "Deny deletes on production resources without human approval",
+      "actions": ["monitor.delete", "dashboard.delete"],
+      "enforcement": "strict",
+      "condition": "resource.env == 'production'",
+      "remediation": {
+        "type": "human_approval",
+        "prompt": "Deleting production resources requires human approval. Ask the user to confirm before proceeding."
+      }
+    },
+    {
+      "id": "demo-002",
+      "description": "Warn on muting production monitors",
+      "actions": ["monitor.mute"],
+      "enforcement": "warn",
+      "condition": "resource.env == 'production'"
+    },
+    {
+      "id": "demo-003",
+      "description": "Rate limit write operations to 5 per minute per agent",
+      "actions": ["monitor.create", "monitor.delete", "monitor.mute", "dashboard.create", "dashboard.delete"],
+      "enforcement": "audit",
+      "rate_limit": {
+        "max": 5,
+        "window": "1m",
+        "per": "agent"
+      }
+    },
+    {
+      "id": "demo-004",
+      "description": "Audit all read operations",
+      "actions": ["monitor.list", "monitor.read", "dashboard.list", "dashboard.read"],
+      "enforcement": "audit"
+    }
+  ],
+  "audit": {
+    "log_decisions": true,
+    "log_actions": true,
+    "retention_days": 30
+  }
+}

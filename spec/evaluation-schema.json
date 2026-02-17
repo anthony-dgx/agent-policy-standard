@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentpolicy.org/schema/evaluation/v1",
+  "title": "Agent Policy Evaluation",
+  "description": "Schema for the policy evaluation request and response.",
+  "$defs": {
+    "evaluation_request": {
+      "type": "object",
+      "required": ["agent", "action"],
+      "properties": {
+        "agent": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique agent identifier"
+            },
+            "name": {
+              "type": "string",
+              "description": "Human-readable agent name"
+            },
+            "version": {
+              "type": "string",
+              "description": "Agent version"
+            }
+          },
+          "additionalProperties": false
+        },
+        "principal": {
+          "type": "object",
+          "description": "The user on whose behalf the agent is acting",
+          "properties": {
+            "user_id": {
+              "type": "string"
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "intent": {
+          "type": "string",
+          "description": "Natural-language description of what the agent intends to do"
+        },
+        "action": {
+          "type": "string",
+          "description": "The API action being attempted (e.g., 'monitor.delete')"
+        },
+        "resource": {
+          "type": "object",
+          "description": "The target resource",
+          "properties": {
+            "type": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            },
+            "env": {
+              "type": "string",
+              "description": "Environment (e.g., 'production', 'staging')"
+            }
+          },
+          "additionalProperties": true
+        },
+        "context": {
+          "type": "object",
+          "description": "Additional context for evaluation",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluation_response": {
+      "type": "object",
+      "required": ["decision"],
+      "properties": {
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny", "warn"],
+          "description": "The policy decision"
+        },
+        "rule_id": {
+          "type": "string",
+          "description": "ID of the rule that triggered this decision"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable explanation of the decision"
+        },
+        "remediation": {
+          "type": "object",
+          "description": "How the agent can fix a denial",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["human_approval", "reduce_scope", "retry_after", "alternative_action"]
+            },
+            "prompt": {
+              "type": "string"
+            }
+          },
+          "required": ["type", "prompt"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
